@@ -1,0 +1,159 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.7'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Generate code
+      run: dart run build_runner build --delete-conflicting-outputs
+      
+    - name: Run tests
+      run: flutter test
+      
+    - name: Analyze code
+      run: flutter analyze
+
+  build-android:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.7'
+        
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Generate code
+      run: dart run build_runner build --delete-conflicting-outputs
+      
+    - name: Build APK
+      run: flutter build apk --release
+      
+    - name: Build App Bundle
+      run: flutter build appbundle --release
+      
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apk
+        path: build/app/outputs/flutter-apk/app-release.apk
+        
+    - name: Upload App Bundle
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-aab
+        path: build/app/outputs/bundle/release/app-release.aab
+
+  build-ios:
+    needs: test
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.7'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Generate code
+      run: dart run build_runner build --delete-conflicting-outputs
+      
+    - name: Build iOS
+      run: flutter build ios --release --no-codesign
+      
+    - name: Upload iOS build
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-build
+        path: build/ios/iphoneos/
+
+  build-web:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.7'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Generate code
+      run: dart run build_runner build --delete-conflicting-outputs
+      
+    - name: Build Web
+      run: flutter build web --release
+      
+    - name: Upload Web build
+      uses: actions/upload-artifact@v4
+      with:
+        name: web-build
+        path: build/web/
+
+  release:
+    if: github.event_name == 'release'
+    needs: [build-android, build-ios, build-web]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download Android APK
+      uses: actions/download-artifact@v4
+      with:
+        name: android-apk
+        
+    - name: Download Android AAB
+      uses: actions/download-artifact@v4
+      with:
+        name: android-aab
+        
+    - name: Download Web build
+      uses: actions/download-artifact@v4
+      with:
+        name: web-build
+        path: web-build/
+        
+    - name: Create Web archive
+      run: tar -czf web-build.tar.gz -C web-build .
+        
+    - name: Upload Release Assets
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          app-release.apk
+          app-release.aab
+          web-build.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,29 @@
+
+name: apparence_kit
+description: A Flutter wrapper for MiniLM embeddings on Android
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  path_provider: ^2.1.2
+  permission_handler: ^11.0.1
+  drift: ^2.13.0
+  sqlite3_flutter_libs: ^0.5.17
+  file_picker: ^8.0.0
+  path: ^1.8.3
+  syncfusion_flutter_pdf: ^24.2.9
+  crypto: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  drift_dev: ^2.13.0
+  build_runner: ^2.4.7
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,80 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Large files and ML models (>50MB)
+*.safetensors
+*.bin
+*.onnx
+*.tflite
+*.pb
+*.h5
+*.model
+*.weights
+*.ckpt
+*.pth
+*.pt
+
+# Model directories
+/android/MiniLMEmbedder/rs-model2vec/embeddings.safetensors
+/android/MiniLMEmbedder/rs-model2vec/tokenizer.json
+/models/
+/weights/
+
+# Build artifacts
+/android/.gradle/
+/android/build/
+/android/MiniLMEmbedder/build/
+/android/MiniLMEmbedder/.gradle/
+
+# IDE files
+.vscode/
+*.iml
+
+# Local configuration
+/android/local.properties
+
+# PDF samples (can be large)
+/pdfs/*.pdf
