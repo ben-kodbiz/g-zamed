@@ -12,8 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI/CD pipeline
 - Release build scripts for Windows and Unix systems
 - Comprehensive documentation and contribution guidelines
+- Alpha version warnings and known issues documentation
 
-## [1.0.0] - 2024-12-19
+## [0.1.0-alpha] - 2024-12-19
+
+### ⚠️ Alpha Release Notes
+**This is an early alpha version with known limitations. Use with caution in critical situations.**
+
+### Known Issues
+- PDF text extraction may produce garbled/corrupted text
+- Document processing reliability varies across file formats
+- UI elements may have inconsistent behavior
+- Search accuracy is still being optimized
+- Large documents may cause performance issues
 
 ### Added
 - **Core Medical RAG System**
@@ -62,6 +73,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Database**: SQLite with Drift ORM
 - **ML Model**: MiniLM embeddings via native Android integration
 - **Architecture**: Clean architecture with service layer separation
+- **Status**: Alpha - Work in Progress
+
+### Stability Notes
+- Text files (.txt) work most reliably
+- PDF processing is experimental and may fail
+- Always verify extracted medical information
+- Recommended for testing and development only
 
 ### Dependencies
 - `flutter`: ^3.32.7

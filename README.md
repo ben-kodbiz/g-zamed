@@ -1,5 +1,17 @@
 # MiniLM RAG System - Offline Medical Survival Guide for Gaza/Palestine
 
+⚠️ **ALPHA VERSION - WORK IN PROGRESS** ⚠️
+
+**This is an early alpha stage application. Some functions may not work properly:**
+- PDF text extraction may produce garbled/corrupted text
+- Document processing reliability varies
+- UI elements may have inconsistent behavior
+- Search accuracy is still being optimized
+
+**Use with caution in critical situations. Always verify extracted information.**
+
+---
+
 🚀 **A Flutter-based Retrieval-Augmented Generation (RAG) system powered by MiniLM embeddings for intelligent document search and question answering, specifically designed for medical war/trauma survival in Gaza/Palestine with complete offline functionality.**
 
 ## 📋 Table of Contents
@@ -26,6 +38,31 @@
 - **⚡ Real-time Search**: Instant search results with similarity scoring
 - **🚨 Emergency Ready**: Designed for use in areas with limited connectivity
 - **⚡ Offline Operation**: Complete functionality without internet connection
+
+## ⚠️ Development Status
+
+**Current Version**: Alpha 0.1.0 (Work in Progress)
+
+### Known Issues
+- **PDF Processing**: Text extraction from PDFs may result in garbled or corrupted text
+- **Document Parsing**: Some document formats may not parse correctly
+- **Search Accuracy**: Semantic search results may vary in quality
+- **UI Stability**: Some interface elements may behave inconsistently
+- **Performance**: Large documents may cause slow processing
+
+### What Works
+- ✅ Basic document upload (TXT files work best)
+- ✅ Text chunking and embedding generation
+- ✅ Semantic search functionality
+- ✅ Local database storage
+- ✅ Cross-platform deployment
+
+### Upcoming Improvements
+- 🔄 Enhanced PDF text extraction
+- 🔄 Better error handling and user feedback
+- 🔄 Improved search accuracy
+- 🔄 UI/UX refinements
+- 🔄 Performance optimizations
 
 ## 🏥 Medical Emergency Context
 
