@@ -56,12 +56,22 @@ app.*.map.json
 *.ckpt
 *.pth
 *.pt
+*.gguf
+*.ggml
 
 # Model directories
 /android/MiniLMEmbedder/rs-model2vec/embeddings.safetensors
 /android/MiniLMEmbedder/rs-model2vec/tokenizer.json
 /models/
 /weights/
+/assets/models/
+
+# TinyLLaMA and LLM models
+/assets/models/llm/
+*.gguf
+*.ggml
+tinyllama*
+llama*
 
 # Build artifacts
 /android/.gradle/
@@ -75,6 +85,3 @@ app.*.map.json
 
 # Local configuration
 /android/local.properties
-
-# PDF samples (can be large)
-/pdfs/*.pdf

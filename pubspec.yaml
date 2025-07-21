@@ -18,6 +18,9 @@ dependencies:
   path: ^1.8.3
   syncfusion_flutter_pdf: ^24.2.9
   crypto: ^3.0.3
+  fllama:
+    git:
+      url: https://github.com/Telosnex/fllama.git
 
 dev_dependencies:
   flutter_test:
@@ -27,3 +30,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/models/llm/

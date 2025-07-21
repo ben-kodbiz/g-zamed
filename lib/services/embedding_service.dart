@@ -256,11 +256,15 @@ class SearchResult {
   final double similarity;
   final int id;
   final String? title;
+  final int? documentId;
+  final String? fileName;
 
   SearchResult({
     required this.content,
     required this.similarity,
     required this.id,
     this.title,
+    this.documentId,
+    this.fileName,
   });
 }

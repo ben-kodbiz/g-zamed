@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:apparence_kit/database/database.dart';
 import 'package:apparence_kit/services/embedding_service.dart';
+import 'package:apparence_kit/services/llm_service.dart';
+import 'package:apparence_kit/services/llm_service_mock.dart';
 import 'package:apparence_kit/widgets/search_results_widget.dart';
 import 'package:apparence_kit/widgets/document_upload_widget.dart';
 import 'package:flutter/foundation.dart';
@@ -18,6 +20,8 @@ class RagHomeScreen extends StatefulWidget {
 class _RagHomeScreenState extends State<RagHomeScreen> {
   late final AppDatabase _database;
   late final EmbeddingService _embeddingService;
+  late final LLMService? _llmService;
+  late final MockLLMService? _mockLLMService;
   
   final TextEditingController _searchController = TextEditingController();
   List<SearchResult> _searchResults = [];
@@ -26,6 +30,8 @@ class _RagHomeScreenState extends State<RagHomeScreen> {
   bool _isUploading = false;
   String _statusMessage = '';
   bool _showDocuments = false;
+  bool _useLLMEnhancement = true;
+  String _llmResponse = '';
 
   @override
   void initState() {
@@ -33,9 +39,16 @@ class _RagHomeScreenState extends State<RagHomeScreen> {
     if (defaultTargetPlatform == TargetPlatform.android) {
       _database = AppDatabase();
       _embeddingService = EmbeddingService(_database);
+      _llmService = LLMService();
+      _mockLLMService = null;
       _initializeAndCheckPersistence();
     } else {
-      _showPlatformError();
+      // For non-Android platforms, use mock services for testing
+      _database = AppDatabase();
+      _embeddingService = EmbeddingService(_database);
+      _llmService = null;
+      _mockLLMService = MockLLMService();
+      _showPlatformWarning();
     }
   }
   
@@ -83,49 +96,112 @@ class _RagHomeScreenState extends State<RagHomeScreen> {
     super.dispose();
   }
 
-  void _showPlatformError() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Platform Not Supported'),
-        content: const Text(
-          'This app is designed to run exclusively on Android devices. '
-          'The MiniLM embedding functionality requires Android platform channels.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+  void _showPlatformWarning() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Development Mode'),
+          content: const Text(
+            'You are running in development mode. '
+            'Full functionality (MiniLM embeddings and TinyLLaMA) is only available on Android devices. '
+            'Mock responses will be used for testing the UI.',
           ),
-        ],
-      ),
-    );
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Future<void> _performSearch() async {
-    if (defaultTargetPlatform != TargetPlatform.android) {
-      setState(() {
-        _statusMessage = 'Search is only available on Android devices';
-      });
-      return;
-    }
-    
     if (_searchController.text.trim().isEmpty) return;
     
     setState(() {
       _isSearching = true;
       _searchResults = [];
+      _llmResponse = '';
     });
 
     try {
-      final results = await _embeddingService.searchSimilar(
-        _searchController.text.trim(),
-        limit: 3,
-      );
+      List<SearchResult> results = [];
+      
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        // Step 1: Perform embedding-based search on Android
+        results = await _embeddingService.searchSimilar(
+          _searchController.text.trim(),
+          limit: 3,
+        );
+      } else {
+        // For non-Android platforms, create mock search results
+        results = [
+          SearchResult(
+            id: 1,
+            documentId: 1,
+            fileName: 'mock_medical_guide.txt',
+            content: 'Emergency medical procedures for trauma care, wound treatment, and basic life support in field conditions.',
+            similarity: 0.95,
+          ),
+          SearchResult(
+            id: 2,
+            documentId: 2,
+            fileName: 'gaza_medical_protocols.txt',
+            content: 'Medical protocols adapted for Gaza/Palestine emergency situations with limited resources.',
+            similarity: 0.87,
+          ),
+        ];
+      }
+      
       setState(() {
         _searchResults = results;
-        _statusMessage = 'Found ${results.length} relevant results';
       });
+      
+      // Step 2: If LLM enhancement is enabled and we have results, generate LLM response
+      if (_useLLMEnhancement && results.isNotEmpty) {
+        setState(() {
+          _statusMessage = 'Found ${results.length} results. Generating AI response...';
+        });
+        
+        try {
+          // Combine relevant chunks as context
+          final context = results.map((r) => r.content).join('\n\n');
+          
+          // Generate LLM response using appropriate service
+          String llmResponse;
+          if (defaultTargetPlatform == TargetPlatform.android && _llmService != null) {
+            llmResponse = await _llmService!.runTinyLlamaChat(
+              _searchController.text.trim(),
+              context,
+            );
+          } else if (_mockLLMService != null) {
+            llmResponse = await _mockLLMService!.runTinyLlamaChat(
+              _searchController.text.trim(),
+              context,
+            );
+          } else {
+            throw Exception('No LLM service available');
+          }
+          
+          setState(() {
+            _llmResponse = llmResponse;
+            final platformNote = defaultTargetPlatform == TargetPlatform.android ? '' : ' (Mock Response)';
+            _statusMessage = 'Found ${results.length} results with AI-generated response$platformNote';
+          });
+        } catch (llmError) {
+          print('LLM Error: $llmError');
+          setState(() {
+            _statusMessage = 'Found ${results.length} results (AI response failed: $llmError)';
+          });
+        }
+      } else {
+        setState(() {
+          _statusMessage = 'Found ${results.length} relevant results';
+        });
+      }
     } catch (e) {
       setState(() {
         _statusMessage = 'Search failed: $e';
@@ -140,7 +216,12 @@ class _RagHomeScreenState extends State<RagHomeScreen> {
   Future<void> _uploadDocument() async {
     if (defaultTargetPlatform != TargetPlatform.android) {
       setState(() {
-        _statusMessage = 'Document upload is only available on Android devices';
+        _statusMessage = 'Document upload is in mock mode for testing UI';
+      });
+      // Add a mock document for testing
+      await Future.delayed(const Duration(seconds: 1));
+      setState(() {
+        _statusMessage = 'Mock document "emergency_medical_guide.txt" uploaded successfully!';
       });
       return;
     }
@@ -446,11 +527,38 @@ class _RagHomeScreenState extends State<RagHomeScreen> {
                     controller: _searchController,
                     decoration: const InputDecoration(
                       labelText: 'Search documents',
-                      hintText: 'Enter your question or search query...',
+                      hintText: 'Enter your medical question or search query...',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.search),
                     ),
                     onSubmitted: (_) => _performSearch(),
+                  ),
+                  const SizedBox(height: 16),
+                  // LLM Enhancement Toggle
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.psychology,
+                        color: _useLLMEnhancement ? Colors.blue : Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'AI-Enhanced Responses',
+                        style: TextStyle(
+                          color: _useLLMEnhancement ? Colors.blue : Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Spacer(),
+                      Switch(
+                        value: _useLLMEnhancement,
+                        onChanged: (value) {
+                          setState(() {
+                            _useLLMEnhancement = value;
+                          });
+                        },
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -532,12 +640,81 @@ class _RagHomeScreenState extends State<RagHomeScreen> {
             child: _searchResults.isEmpty
                 ? const Center(
                     child: Text(
-                      'No search results yet.\nUpload documents and search to see results here.',
+                      'No search results yet.\nUpload medical documents and search to see results here.',
                       style: TextStyle(color: Colors.grey),
                       textAlign: TextAlign.center,
                     ),
                   )
-                : SearchResultsWidget(results: _searchResults),
+                : Column(
+                    children: [
+                      // AI Response Section (if available)
+                      if (_llmResponse.isNotEmpty) ...[
+                        Card(
+                          color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.psychology,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'AI Medical Assistant Response',
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        color: Theme.of(context).colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.surface,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    _llmResponse,
+                                    style: Theme.of(context).textTheme.bodyMedium,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '⚠️ This is AI-generated medical information for emergency reference only. Always consult qualified medical professionals.',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.orange[700],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Source Documents:',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      // Original Search Results
+                      Expanded(
+                        child: SearchResultsWidget(results: _searchResults),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),
